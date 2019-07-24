@@ -6,31 +6,28 @@ from PyQt5.QtWidgets import QApplication, QWidget, QInputDialog, QLineEdit, QFil
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import pyqtSlot
 
-class Controller(object):        
+class Controller():     
+    """The controller for the application."""  
+    main = None
+    app = None
 
-    #calls the file dialog to select a file
-    def uploadFile(self):
-        uploadBox = file.FileUpload()
-        fileName = uploadBox.openFileNameDialog()
-        if fileName:
-            MainWindow = QtWidgets.QMainWindow()
-            ui = views.Ui_MsaScreen(self)
-            ui.setupUi(MainWindow)
-            MainWindow.show()
-            
+    def __init__(self):
+        self.process_file_name = ""
+        self.app = QApplication(sys.argv)
+        self.main = views.StartWindow(self)
+        self.main.show()
+        sys.exit(self.app.exec_())
 
-    def start(self):
-        #self.MainWindow.show()
-        print("start")
-        app = QtWidgets.QApplication(sys.argv)
-        MainWindow = QtWidgets.QMainWindow()
-        ui = views.Ui_StartScreen(self)
-        ui.setupUi(MainWindow)
-        MainWindow.show()
-        sys.exit(app.exec_())
-        
+    def upload_file(self):
+        """Presents file upload window."""
+        upload_box = file.FileUpload()
+        self.process_file_name = upload_box.openFileNameDialog()
+        if self.process_file_name:
+            #do something with msa
+            self.load_msa_screen()
 
-
-if __name__ == "__main__":
-    controller = Controller()
-    controller.start()
+    def load_msa_screen(self):
+        """Loads the msa screen"""
+        self.main.hide()
+        msa_screen = views.MSAWindow(self, self.main)
+        msa_screen.show()
