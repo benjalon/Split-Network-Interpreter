@@ -1,5 +1,4 @@
 """Views used in the windowing of the application with PyQt5."""
-import sys
 from os.path import dirname
 from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5 import uic
@@ -39,6 +38,7 @@ class MSAWindow(QMainWindow):
         self.close()
 
     def change_filename(self, filename):
+        """Changes the file name at the top of the MSA screen."""
         self.fileNameLabel.setText(filename)
 
 

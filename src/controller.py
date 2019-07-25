@@ -1,15 +1,15 @@
+"""Controller class which coordinates the interaction between the view and model."""
 import views
 import file
 import sys
+from msa_processor import MsaProcessor
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QApplication, QWidget, QInputDialog, QLineEdit, QFileDialog
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import pyqtSlot
 
-class Controller():     
-    """The controller for the application."""  
-    main = None
-    app = None
+class Controller():
+    """The controller for the application."""
 
     def __init__(self):
         self.process_file_name = ""
@@ -23,7 +23,7 @@ class Controller():
         upload_box = file.FileUpload()
         self.process_file_name = upload_box.openFileNameDialog()
         if self.process_file_name:
-            #do something with msa
+            msa = MsaProcessor(self.process_file_name)
             self.load_msa_screen()
 
     def load_msa_screen(self):
