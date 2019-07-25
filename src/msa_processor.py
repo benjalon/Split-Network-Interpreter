@@ -1,8 +1,10 @@
 """Class which takes nexus file path and produces a
  processed & coloured MSA."""
 import re
+import operator
 from nexus import NexusReader
 from numpy import zeros
+
 
 class MsaProcessor():
     """Processes a nexus file."""
@@ -10,30 +12,15 @@ class MsaProcessor():
     def __init__(self, file_path):
         nexus_file = NexusReader(file_path)
 
-        self.msa = nexus_file.characters.matrix  # pylint: disable=no-member
-        self.num_characters = nexus_file.characters.nchar  # pylint: disable=no-member
+        self._msa = nexus_file.characters.matrix  # pylint: disable=no-member
+        self.num_columns = nexus_file.characters.nchar  # pylint: disable=no-member
         self.num_species = nexus_file.characters.ntaxa  # pylint: disable=no-member
-        self.symbols = nexus_file.characters.symbols  # pylint: disable=no-member
-        self.splits = self._process_splits(nexus_file.splits.block)  # pylint: disable=no-member
+        self.symbols = nexus_file.characters.symbols  # pylint:disable=no-member
+        total_splits = self._process_splits(nexus_file.splits.block)  # pylint: disable=no-member
         self.upper_limit = 0
-
-        self.calculate()
-
-        # splits = getSplits(n.splits.block[6:-2])
-        # colSplit = zeros([len(msa)],int)
-        # i = 0
-        # for col in msa:
-        #     if (isPartition(col)):
-        #         partition = getSets(col)
-        #         colSplit[i] = matchSplit(partition, splits, n.taxa.ntaxa)
-        #     else:
-        #         colSplit[i] = 0
-        #     i += 1
-        # arr = {}
-        # arr["msa"] = msa
-        # arr["colSplit"] = colSplit
-        # arr["n"] = n
-        # arr["splits"] = splits
+        total_splits = sorted(total_splits, key=operator.itemgetter('split_weight'), reverse=True)
+        self.splits = total_splits[0:required_splits]
+        self._calculate()
 
     def _process_splits(self, block):
         """Returns a list of splits e.g [1,2,3],[1],[3,4]"""
@@ -60,7 +47,8 @@ class MsaProcessor():
         item = list(range(1, self.num_species + 1))
         return list(set(item) - set(split))
 
-    def _make_sets_from_column(self, column):
+    @staticmethod
+    def _make_sets_from_column(column):
         """Returns two sets representing the partition in the MSA"""
         set_dict = {}
         i = 0
@@ -79,14 +67,14 @@ class MsaProcessor():
             temp.append(list(arr))
         return temp
 
-    def rand_distance(self, partition_p, partition_q):
+    def _rand_distance(self, partition_p, partition_q):
         """Returns the distance by rand index between bases p and q"""
         rand_s = rand_r = rand_u = rand_v = 0
 
         for i in range(1, self.num_species+1):
             for j in range(1, self.num_species+1):
-                if (i != j):
-                    set_info = self.part_sep(partition_p, partition_q, i, j)
+                if i != j:
+                    set_info = self._part_sep(partition_p, partition_q, i, j)
 
                     if(set_info['pTogether'] and set_info['qTogether']):
                         rand_s += 1
@@ -100,7 +88,7 @@ class MsaProcessor():
         return rand
 
     @staticmethod
-    def part_sep(partition_p, partition_q, value_x, value_y):
+    def _part_sep(partition_p, partition_q, value_x, value_y):
         """
         Returns a dictionary showing if p and q are together or separate in
         the two partitions
@@ -131,32 +119,26 @@ class MsaProcessor():
 
         for split in self.splits:
             full_split = [split['split'], split['inverse']]
-            score_list[i] = self.rand_distance(full_split, partition)
+            score_list[i] = self._rand_distance(full_split, partition)
             i += 1
-            
+
         highest = 0
         for i, score in enumerate(score_list):
-            if (score > highest):
+            if score > highest:
                 highest = score
                 pos = i+1
 
         return pos
 
-    def calculate(self):
+    def _calculate(self):
         """Does the main logic"""
-        # for col in msa:
-        #     if (isPartition(col)):
-        #         //partition = getSets(col)
-        #         colSplit[i] = matchSplit(partition, splits, n.taxa.ntaxa)
-        #     else:
-        #         colSplit[i] = 0
-        #     i += 1
-        for col_num in range(self.num_characters):
+
+        for col_num in range(self.num_columns):
 
             # Get the column of the MSA.
             column = []
-            for species in self.msa:
-                column.append(self.msa[species][col_num])
+            for species in self._msa:
+                column.append(self._msa[species][col_num])
 
             # As we use a Set, if there are any duplicates, the length will
             # greater than 1 meaning the column is a partition.
@@ -170,4 +152,10 @@ class MsaProcessor():
             else:
                 print("Row ", col_num+1, "= False")
 
-PRO = MsaProcessor('/Users/benlonghurst/Documents/GitHub/Split-Network-Interpreter/Nexus_Examples/beesProcessed.nex')
+    def msa(self):
+        """Returns the MSA as a matrix."""
+
+    def split_columns(self):
+        """Returns an array containing the split found at each location."""
+
+PRO = MsaProcessor('/Users/benlonghurst/Documents/GitHub/Split-Network-Interpreter/Nexus_Examples/mammals.nex')
