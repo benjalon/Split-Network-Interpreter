@@ -230,7 +230,3 @@ class MsaProcessor():
 
     def split_columns(self):
         '''Returns an array containing the split found at each location.'''
-
-PATH = '/Users/benlonghurst/Documents/GitHub/'
-PATH = PATH + 'Split-Network-Interpreter/Nexus_Examples/'
-PRO = MsaProcessor(PATH+'mammals.nex', 108)
