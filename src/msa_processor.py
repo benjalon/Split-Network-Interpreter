@@ -18,6 +18,7 @@ class MsaProcessor():
         self._msa = nexus_file.characters.matrix
         self.num_columns = nexus_file.characters.nchar
         self.num_species = nexus_file.characters.ntaxa
+        self.species_names = nexus_file.characters.taxa
         self.symbols = nexus_file.characters.symbols
         self.upper_limit = 0
 
@@ -78,7 +79,7 @@ class MsaProcessor():
     @staticmethod
     def _make_sets_from_column(column):
         '''
-        Returns a partition of the column of bases or proteins. 
+        Returns a partition of the column of bases or proteins.
         '''
         # In the dictionary each unique 'base' is stored as the key and each
         # column with the same 'base' is added to that key.
