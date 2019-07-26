@@ -1,47 +1,62 @@
 # pylint: disable=no-member
-"""Class which takes nexus file path and produces a
- processed & coloured MSA."""
+'''Class which takes nexus file path and produces a
+ processed & coloured MSA.'''
 import re
 import operator
 import time
 import concurrent.futures
 from nexus import NexusReader
-from numpy import zeros
 
 
 class MsaProcessor():
-    """Processes a nexus file."""
+    '''Processes a nexus file.'''
 
     def __init__(self, file_path, top_splits=None):
         nexus_file = NexusReader(file_path)
 
+        # Set class variables from file.
         self._msa = nexus_file.characters.matrix
         self.num_columns = nexus_file.characters.nchar
         self.num_species = nexus_file.characters.ntaxa
         self.symbols = nexus_file.characters.symbols
+        self.upper_limit = 0
+
+        # If set, only process top x splits sorted by weight.
         total_splits = self._process_splits(
             nexus_file.splits.block)
-        self.upper_limit = 0
         total_splits = sorted(
             total_splits,
             key=operator.itemgetter('split_weight'), reverse=True)
+
         if top_splits is None:
             self.splits = total_splits
         else:
             self.splits = total_splits[0:top_splits]
-        print("Total time: {}".format(self._calculate()))
+
+        # Timing code
+        print("Total time: {}".format(self._calculate(False)))
 
     def _process_splits(self, block):
-        """Returns a list of splits e.g [1,2,3],[1],[3,4]"""
-
+        '''
+        Returns list containing dictionaries containing information on each
+        split.
+        '''
         split_list = []
 
         for data_row in block:
+
+            # Rows that contain splits start with [n...
             if data_row[0] == "[":
+
+                # Regex rule that gets three groups from:
+                #   [7, size=1] 	 0.02142	  1 3 5 9,
+                #    = ["7", "0.02124", "1 3 5 9"]
                 reg = r"\[(.*),.*TAB\s(.*)\sTAB\s*(.*),"
                 data_row = data_row.replace("\t", "TAB")
                 split = re.findall(reg, data_row)
                 splits_int = list(map(int, split[0][2].split(" ")))
+
+                # Put into a dictionary in the correct types.
                 split_dict = {
                     'split_number': int(split[0][0]),
                     'split_weight': float(split[0][1]),
@@ -53,22 +68,31 @@ class MsaProcessor():
         return split_list
 
     def _get_inverse_split(self, split):
+        '''
+        Returns the inverse of a partition
+        e.g. Species = 6 Partiton = [1,2,3,5] Inverse = [4,6]
+        '''
         item = list(range(1, self.num_species + 1))
         return list(set(item) - set(split))
 
     @staticmethod
     def _make_sets_from_column(column):
-        """Returns two sets representing the partition in the MSA"""
+        '''
+        Returns a partition of the column of bases or proteins. 
+        '''
+        # In the dictionary each unique 'base' is stored as the key and each
+        # column with the same 'base' is added to that key.
         set_dict = {}
-        i = 0
-        for base in column:
+        for i, base in enumerate(column):
             set_dict.setdefault(base, None)
             if set_dict[base] is None:
                 set_dict[base] = [i]
             else:
                 set_dict[base].append(i)
-            i += 1
 
+        # To create a list that looks more like the splits remove the 'base'
+        # key and return a list of columns by 'base'. Add 1 to line up with
+        # actual splits.
         temp = []
         for ind in set_dict:
             arr = set_dict[ind]
@@ -77,12 +101,15 @@ class MsaProcessor():
         return temp
 
     def _rand_distance(self, partition_p, partition_q):
-        """Returns the distance by rand index between bases p and q"""
+        '''Returns the distance by rand index between bases p and q'''
         rand_s = rand_r = rand_u = rand_v = 0
 
+        # Go through every possible pairs between partitions.
         for i in range(1, self.num_species+1):
             for j in range(1, self.num_species+1):
                 if i != j:
+                    # Generate results for how values appear across both
+                    # partitions.
                     set_info = self._part_sep(partition_p, partition_q, i, j)
 
                     if(set_info['pTogether'] and set_info['qTogether']):
@@ -94,15 +121,17 @@ class MsaProcessor():
                         rand_u += 1
                     if (set_info['pTogether'] and not set_info['qTogether']):
                         rand_v += 1
+
+        # Use Rand Index to calculate distance between partitions.
         rand = (rand_r+rand_s)/(rand_r+rand_s+rand_u+rand_v)
         return rand
 
     @staticmethod
     def _part_sep(partition_p, partition_q, value_x, value_y):
-        """
+        '''
         Returns a dictionary showing if p and q are together or separate in
         the two partitions
-        """
+        '''
         return_dict = {}
 
         for part in partition_p:
@@ -122,43 +151,61 @@ class MsaProcessor():
         return return_dict
 
     def _match_split(self, partition):
-        """Matches a partition to the closest split"""
-        num = len(self.splits)
-        score_list = zeros([num])
-        i = 0
+        '''Matches a partition to the closest split'''
+        score_list = []  # A list to keep track of rand scores.
 
+        # For each split work out how close it is to the partition.
         for split in self.splits:
+            # Combine split with other half.
             full_split = [split['split'], split['inverse']]
-            score_list[i] = self._rand_distance(full_split, partition)
-            i += 1
+            split_result = {
+                'split_number': split['split_number'],
+                'split_score': self._rand_distance(full_split, partition),
+                'split_weight': split['split_weight']
+            }
+            score_list.append(split_result)
 
-        highest = 0
-        for i, score in enumerate(score_list):
-            if score > highest:
-                highest = score
-                pos = i+1
+        # Sort the lists by score then weight to settle conflicts.
+        score_list = sorted(
+            score_list,
+            key=operator.itemgetter(
+                'split_score', 'split_weight'), reverse=True)
 
-        return pos
+        # Return the position of the highest scoring split.
+        return score_list[0]['split_number']
 
     def _calculate(self, threading=True):
-        """Does the main logic"""
-        start = time.time()
+        '''
+        Generates the results for the MSA.
+
+        Args:
+            threading (boolean): If Multi-threading should be used.
+        '''
+        start = time.time()  # Time monitor
+
+        # Make a list to iterate through all the columns of the MSA.
         total_columns = list(range(self.num_columns))
+
+        # If multi-threading is required use a ProcessPoolExecutor to carry
+        # out multiple operations in an asynchronous manner.
         if threading:
             with concurrent.futures.ProcessPoolExecutor() as executor:
                 for col_num, result in zip(
                         total_columns, executor.map(
-                            self._calc2, total_columns)):
+                            self._calculate_column, total_columns)):
 
                     print("Column: {} - Result {}".format(col_num, result))
         else:
             for col_num in total_columns:
                 print("Column: {} - Result {}".format(
-                    col_num, self._calc2(col_num)))
+                    col_num, self._calculate_column(col_num)))
 
         return time.time() - start
 
-    def _calc2(self, col_num):
+    def _calculate_column(self, col_num):
+        '''
+        For a given column, match it with the closest split.
+        '''
         # Get the column of the MSA.
         column = []
         for species in self._msa:
@@ -169,19 +216,21 @@ class MsaProcessor():
         if len(set(column)) > 1:
 
             # Now make the column into a parition referencing species
-            # number. e.g. (1:A,2:A,3:G,4:A) would be (1,2,4) - (3)
+            # number. e.g. (A, A, G, A) would be (1,2,4) - (3)
             partition = self._make_sets_from_column(column)
+
+            # Match the parition with the closest split.
             result = self._match_split(partition)
             return result
         else:
             return "N/A"
 
     def msa(self):
-        """Returns the MSA as a matrix."""
+        '''Returns the MSA as a matrix.'''
 
     def split_columns(self):
-        """Returns an array containing the split found at each location."""
+        '''Returns an array containing the split found at each location.'''
 
 PATH = '/Users/benlonghurst/Documents/GitHub/'
 PATH = PATH + 'Split-Network-Interpreter/Nexus_Examples/'
-PRO = MsaProcessor(PATH+'mammals.nex', 10)
+PRO = MsaProcessor(PATH+'mammals.nex', 108)
