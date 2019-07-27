@@ -13,7 +13,7 @@ from numpy import zeros
 class MsaProcessor():
     '''Processes a nexus file.'''
 
-    def __init__(self, file_path, top_splits=None):
+    def __init__(self, file_path, threading=True, top_splits=None):
         nexus_file = NexusReader(file_path)
 
         # Set class variables from file.
@@ -23,8 +23,7 @@ class MsaProcessor():
         self.species_names = nexus_file.characters.taxa
         self.symbols = nexus_file.characters.symbols
         self.upper_limit = 0
-        threading = True
-
+        
         # If set, only process top x splits sorted by weight.
         total_splits = self._process_splits(
             nexus_file.splits.block)
@@ -34,11 +33,33 @@ class MsaProcessor():
 
         if top_splits is None:
             self.splits = total_splits
+            self.num_splits = len(total_splits)
         else:
             self.splits = total_splits[0:top_splits]
+            self.num_splits = top_splits
 
-        # Timing code
-        self.process_time, self.column_split = self._calculate(threading)
+        # If the msa is 'assuming values' we must fill them in.
+        if '.' in self.symbols:
+            self._fix_msa()
+
+        # Calculate the splits in each partition.
+        self.split_by_column = self._calculate(threading)
+
+    def _fix_msa(self):
+        msa_copy = self._msa
+
+        arra = empty([self.num_columns, self.num_species], str)
+        # For each column make an array and add it to the main return msa
+        for column in range(self.num_columns):
+            for i, species in enumerate(self._msa):
+                if i is 0:
+                    top_base = self._msa[species][column]
+                if self._msa[species][column] is '.':
+                    msa_copy[species][column] = top_base
+                else:
+                    msa_copy[species][column] = self._msa[species][column]
+
+        self._msa = msa_copy
 
     def _process_splits(self, block):
         '''
@@ -99,9 +120,9 @@ class MsaProcessor():
         # actual splits.
         temp = []
         for ind in set_dict:
-            temp_arr = set_dict[ind]
-            temp_arr = map(lambda x: x+1, temp_arr)
-            temp.append(list(temp_arr))
+            arr = set_dict[ind]
+            arr = map(lambda x: x+1, arr)
+            temp.append(list(arr))
         return temp
 
     def _rand_distance(self, partition_p, partition_q):
@@ -205,7 +226,7 @@ class MsaProcessor():
             for col_num in total_columns:
                 column_split[col_num] = self._calculate_column(col_num)
 
-        return time.time() - start, column_split
+        return column_split
 
     def _calculate_column(self, col_num):
         '''
@@ -236,22 +257,22 @@ class MsaProcessor():
         e.g.0{a,a,a,a},
             1{a,a,c,a}
         '''
-        msa = empty([self.num_columns, self.num_species], str)
+        arra = empty([self.num_columns, self.num_species], str)
         # For each column make an array and add it to the main return msa
         for column in range(self.num_columns):
             for i, species in enumerate(self._msa):
-                msa[column][i] = self._msa[species][column]
+                arra[column][i] = self._msa[species][column]
 
-        return msa
+        return arra
 
     def split_columns(self):
         '''Returns an array containing the split found at each location.'''
-        return self.column_split
+        return self.split_by_column
 
 
-PATH = '/Users/benlonghurst/Documents/GitHub/'
-PATH = PATH + 'Split-Network-Interpreter/Nexus_Examples/'
-PRO = MsaProcessor(PATH+'beesProcessed.nex')
-arr = PRO.msa()
-split_col = PRO.split_columns()
-x = 1
+# PATH = '/Users/benlonghurst/Documents/GitHub/'
+# PATH = PATH + 'Split-Network-Interpreter/Nexus_Examples/'
+# PRO = MsaProcessor(PATH+'primates.nex')
+# arr = PRO.msa()
+# spl_col = PRO.split_columns()
+# print(spl_col)

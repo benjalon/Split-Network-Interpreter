@@ -200,11 +200,11 @@ def runPG(fileName):
 
     arr = {}
     arr["msa"] = msa # _/
-    arr["colSplit"] = colSplit
+    arr["colSplit"] = colSplit # _/
     arr["n"] = n
     arr["splits"] = splits
 
     return arr
 
-arr = runPG('beesProcessed.nex')
-x = 1
+# arr = runPG('beesProcessed.nex')
+# x = 1

@@ -34,7 +34,7 @@ class App(QWidget):
     def createTable(self):
         # Create table
         self.tableWidget = QTableWidget()
-        arr = partitionGetter.runPG("./beesProcessed.nex")
+        #arr = partitionGetter.runPG("./beesProcessed.nex")
         msa = arr["msa"]
         cols = arr["colSplit"]
         n = arr["n"]
