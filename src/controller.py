@@ -24,10 +24,10 @@ class Controller():
         self.process_file_name = upload_box.openFileNameDialog()
         if self.process_file_name:
             msa = MsaProcessor(self.process_file_name)
-            self.load_msa_screen()
+            self.load_msa_screen(msa)
 
-    def load_msa_screen(self):
+    def load_msa_screen(self, msa):
         """Loads the msa screen"""
         self.main.hide()
-        msa_screen = views.MSAWindow(self, self.main)
+        msa_screen = views.MSAWindow(self, self.main, msa)
         msa_screen.show()
