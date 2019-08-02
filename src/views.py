@@ -1,9 +1,8 @@
 """Views used in the windowing of the application with PyQt5."""
 from os.path import dirname
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidgetItem
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidgetItem, QListWidgetItem
 from PyQt5 import uic
 from PyQt5.QtGui import QIcon, QColor
-import partitionGetter
 import colorgen
 
 
@@ -29,16 +28,20 @@ class MSAWindow(QMainWindow):
         current_dir = dirname(__file__)
         file_path = current_dir[:-3] + file_name
         uic.loadUi(file_path, self)
+        self.msa = msa
         self.change_filename(self.controller.process_file_name)
         self.update_table(msa)
+        self.update_species_list()
 
     def change_filename(self, filename):
         """Changes the file name at the top of the MSA screen."""
         self.filename_label.setText(filename)
+        self.update_splits_list()
 
     def update_table(self, processed_msa):
         # Create table
         self.tableWidget = self.msa_table
+        #self.tableWidget.horizontalHeader().setStretchLastSection(True)
         msa = processed_msa.msa()
         cols = processed_msa.split_by_column
 
@@ -65,5 +68,15 @@ class MSAWindow(QMainWindow):
                     colour = colour_list[ind]
                     self.tableWidget.item(i, j).setBackground(
                         QColor(colour[0], colour[1], colour[2]))
+
+    def update_splits_list(self, splits="hi"):
+        for split in self.msa.splits:
+            item = f"Split:{split['split_number']} - Weight {split['split_weight']}"
+            QListWidgetItem(item, self.splits_list_widget)
+
+    def update_species_list(self):
+        for species in self.msa.species_names:
+            QListWidgetItem(species, self.species_list_widget)
+
 
 

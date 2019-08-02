@@ -23,7 +23,7 @@ class MsaProcessor():
         self.species_names = nexus_file.characters.taxa
         self.symbols = nexus_file.characters.symbols
         self.upper_limit = 0
-        
+
         # If set, only process top x splits sorted by weight.
         total_splits = self._process_splits(
             nexus_file.splits.block)
@@ -48,7 +48,6 @@ class MsaProcessor():
     def _fix_msa(self):
         msa_copy = self._msa
 
-        arra = empty([self.num_columns, self.num_species], str)
         # For each column make an array and add it to the main return msa
         for column in range(self.num_columns):
             for i, species in enumerate(self._msa):
