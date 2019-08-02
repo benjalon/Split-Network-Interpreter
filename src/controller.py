@@ -1,12 +1,15 @@
-"""Controller class which coordinates the interaction between the view and model."""
-import views
-import file
+"""Controller class which coordinates the interaction between the view and
+model."""
 import sys
-from msa_processor import MsaProcessor
+
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QApplication, QWidget, QInputDialog, QLineEdit, QFileDialog
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import pyqtSlot
+
+import views
+import file
+from msa_processor import MsaProcessor
 
 
 class Controller():
@@ -25,11 +28,11 @@ class Controller():
         self.process_file_name = upload_box.openFileNameDialog()
         if self.process_file_name:
             upload_box.hide()
-            msa = MsaProcessor(self.process_file_name, 10)
+            msa = MsaProcessor(self.process_file_name, False, 10)
             self.load_msa_screen(msa)
 
     def load_msa_screen(self, msa):
         """Loads the msa screen"""
         self.main.hide()
         msa_screen = views.MSAWindow(self, msa, self.main)
-        msa_screen.show()
+        msa_screen.showMaximized()
