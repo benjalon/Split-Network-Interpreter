@@ -34,11 +34,11 @@ class MSAWindow(QMainWindow):
 
     def change_filename(self, filename):
         """Changes the file name at the top of the MSA screen."""
-        self.fileNameLabel.setText(filename)
+        self.filename_label.setText(filename)
 
     def update_table(self, processed_msa):
         # Create table
-        self.tableWidget = self.msaWidget
+        self.tableWidget = self.msa_table
         msa = processed_msa.msa()
         cols = processed_msa.split_by_column
 
