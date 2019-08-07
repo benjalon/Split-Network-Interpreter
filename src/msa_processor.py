@@ -13,7 +13,8 @@ from numpy import zeros
 class MsaProcessor():
     '''Processes a nexus file.'''
 
-    def __init__(self, file_path, threading=True, top_splits=None):
+    def __init__(
+            self, file_path, threading=True, top_splits=None, upper_limit=80):
         nexus_file = NexusReader(file_path)
 
         # Set class variables from file.
@@ -22,7 +23,7 @@ class MsaProcessor():
         self.num_species = nexus_file.characters.ntaxa
         self.species_names = nexus_file.characters.taxa
         self.symbols = nexus_file.characters.symbols
-        self.upper_limit = 0
+        self.upper_limit = upper_limit
 
         # If set, only process top x splits sorted by weight.
         total_splits = self._process_splits(
@@ -196,7 +197,10 @@ class MsaProcessor():
                 'split_score', 'split_weight'), reverse=True)
 
         # Return the position of the highest scoring split.
-        return score_list[0]['split_number']
+        if score_list[0]['split_number'] >= self.upper_limit:
+            return score_list[0]['split_number']
+        else:
+            return False
 
     def _calculate(self, threading=True):
         '''
@@ -225,6 +229,8 @@ class MsaProcessor():
             for col_num in total_columns:
                 column_split[col_num] = self._calculate_column(col_num)
 
+        total_time = time.time() - start
+        print("Processing time = ", total_time)
         return column_split
 
     def _calculate_column(self, col_num):
@@ -246,7 +252,10 @@ class MsaProcessor():
 
             # Match the parition with the closest split.
             result = self._match_split(partition)
-            return result
+            if result is not False:
+                return result
+            else:
+                return 0
         else:
             return 0
 
