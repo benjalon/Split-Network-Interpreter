@@ -2,7 +2,8 @@
 from os.path import dirname
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidgetItem, QListWidgetItem
 from PyQt5 import uic
-from PyQt5.QtGui import QIcon, QColor
+from PyQt5.QtGui import QIcon, QColor, QIntValidator, QRegExpValidator
+from PyQt5.QtCore import QRegExp
 import colorgen
 
 
@@ -90,14 +91,30 @@ class SettingsWindow(QMainWindow):
         uic.loadUi(file_path, self)
         self.controller = controller
 
+        int_validator = QIntValidator()
+        re = QRegExp("[0-9]*")
+        abb = QRegExpValidator(re, self)
+        self.split_number_input.setValidator(abb)
+        self.upper_limit_input.setValidator(abb)
+
+        self.partition_metric_input.addItem("Rand Index")
+        self.partition_metric_input.addItem("Jaccard Index")
+
+        self.start_button.clicked.connect(self._get_settings_value)
+
+    def _get_settings_value(self):
+        settings = {}
+        settings['metric'] = self.partition_metric_input.currentText()
+        print()
+        x = 1
+
 
 class LoadingWindow(QMainWindow):
     """LoadingWindow contains functions for the loadingScreen.ui with PyQt5"""
 
     def __init__(self, controller, parent=None):
         super(LoadingWindow, self).__init__(parent)
-        #file_name = '/UI_Templates/loadingScreen.ui'
-        file_name = '/UI_Templates/startScreen.ui'
+        file_name = '/UI_Templates/loading.ui'
         current_dir = dirname(__file__)
         file_path = current_dir[:-3] + file_name
         uic.loadUi(file_path, self)

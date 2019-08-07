@@ -18,8 +18,9 @@ class Controller():
     def __init__(self):
         self.nexus_file_name = ""
         self.app = QApplication(sys.argv)
-        self.current_window = views.StartWindow(self)
-        self.current_window.show()
+        main_window = views.StartWindow(self)
+        main_window.show()
+        self.current_window = main_window
         sys.exit(self.app.exec_())
         self.msa = None
 
@@ -45,7 +46,7 @@ class Controller():
         self.current_window.hide()
         new_window = views.SettingsWindow(self, self.current_window)
         new_window.show()
-        #self.current_window = new_window
+        self.current_window = new_window
 
     def load_loading_screen(self):
         '''Loads the loading screen'''
