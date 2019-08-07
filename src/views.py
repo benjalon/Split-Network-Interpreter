@@ -30,7 +30,7 @@ class MSAWindow(QMainWindow):
         file_path = current_dir[:-3] + file_name
         uic.loadUi(file_path, self)
         self.msa = msa
-        self.change_filename(self.controller.process_file_name)
+        self.change_filename(self.controller.process_file_name())
         self.update_table(msa)
         self.update_species_list()
 
@@ -70,12 +70,14 @@ class MSAWindow(QMainWindow):
                     self.tableWidget.item(i, j).setBackground(
                         QColor(colour[0], colour[1], colour[2]))
 
-    def update_splits_list(self, splits="hi"):
+    def update_splits_list(self):
+        '''Updates the list of splits in the msa view.'''
         for split in self.msa.splits:
             item = f"Split:{split['split_number']} - Weight {split['split_weight']}"
             QListWidgetItem(item, self.splits_list_widget)
 
     def update_species_list(self):
+        '''Updates the list of species in the msa view.'''
         for species in self.msa.species_names:
             QListWidgetItem(species, self.species_list_widget)
 
@@ -91,22 +93,32 @@ class SettingsWindow(QMainWindow):
         uic.loadUi(file_path, self)
         self.controller = controller
 
-        int_validator = QIntValidator()
-        re = QRegExp("[0-9]*")
-        abb = QRegExpValidator(re, self)
-        self.split_number_input.setValidator(abb)
-        self.upper_limit_input.setValidator(abb)
+        validator = QRegExpValidator(QRegExp("[0-9]*"), self)
+        self.split_number_input.setValidator(validator)
+        self.split_number_input.setText("10")
 
         self.partition_metric_input.addItem("Rand Index")
         self.partition_metric_input.addItem("Jaccard Index")
 
-        self.start_button.clicked.connect(self._get_settings_value)
+        self.start_button.clicked.connect(controller.get_settings_values)
 
-    def _get_settings_value(self):
+    def get_settings_value(self):
+        '''Returns a dict with the values of the stettings screen'''
         settings = {}
-        settings['metric'] = self.partition_metric_input.currentText()
-        print()
-        x = 1
+        settings['metric'] = str(self.partition_metric_input.currentText())
+        settings['upper_limit'] = float(self.upper_limit_input.value())
+
+        top_splits = int(self.split_number_input.text())
+        if top_splits == 0:
+            top_splits = None
+        else:
+            top_splits = top_splits
+        settings['top_splits'] = top_splits
+
+        settings['threading'] = bool(self.multithreading_checkbox.isChecked())
+        settings['colourblind'] = bool(self.colourblind_checkbox.isChecked())
+
+        return settings
 
 
 class LoadingWindow(QMainWindow):

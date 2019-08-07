@@ -7,47 +7,59 @@ import time
 import concurrent.futures
 from nexus import NexusReader
 from numpy import empty
-from numpy import zeros
 
 
 class MsaProcessor():
     '''Processes a nexus file.'''
 
-    def __init__(
-            self, file_path, threading=True, top_splits=None, upper_limit=80,
-            metric="Rand"):
-        nexus_file = NexusReader(file_path)
+    def __init__(self, file_path):
+        self.nexus_file = NexusReader(file_path)
 
         # Set class variables from file.
-        self._msa = nexus_file.characters.matrix
-        self.num_columns = nexus_file.characters.nchar
-        self.num_species = nexus_file.characters.ntaxa
-        self.species_names = nexus_file.characters.taxa
-        self.symbols = nexus_file.characters.symbols
-        self.upper_limit = upper_limit
-        self.metric = metric
+        self._msa = self.nexus_file.characters.matrix
+        self.num_columns = self.nexus_file.characters.nchar
+        self.num_species = self.nexus_file.characters.ntaxa
+        self.species_names = self.nexus_file.characters.taxa
+        self.symbols = self.nexus_file.characters.symbols
 
+        # Variables to be initialised later in the program.
+        self.settings_available = False
+        self.upper_limit = None
+        self.metric = None
+        self.top_splits = None
+        self.split_by_column = None
+        self.threading = None
+        self.splits = None
+        self.num_splits = None
+
+    def _get_top_splits(self):
         # If set, only process top x splits sorted by weight.
         total_splits = self._process_splits(
-            nexus_file.splits.block)
+            self.nexus_file.splits.block)
         total_splits = sorted(
             total_splits,
             key=operator.itemgetter('split_weight'), reverse=True)
 
-        if top_splits is None:
+        if self.top_splits is None:
             self.splits = total_splits
             self.num_splits = len(total_splits)
         else:
-            self.splits = total_splits[0:top_splits]
-            self.num_splits = top_splits
+            self.splits = total_splits[0:self.top_splits]
+            self.num_splits = self.top_splits
 
         # If the msa is 'assuming values' we must fill them in.
         if '.' in self.symbols:
             self._fix_msa()
 
-        # Calculate the splits in each partition.
-        self.split_by_column = None
-        self.threading = threading
+    def upload_settings(self, settings):
+        '''Initialises the settings for the program from a give dict'''
+        self.threading = settings['threading']
+        self.top_splits = settings['top_splits']
+        self.upper_limit = settings['upper_limit']
+        self.metric = settings['metric']
+        self.settings_available = True
+
+        self._get_top_splits()
 
     def _fix_msa(self):
         msa_copy = self._msa
@@ -187,9 +199,9 @@ class MsaProcessor():
             # Combine split with other half.
             full_split = [split['split'], split['inverse']]
 
-            if self.metric == "Rand":
+            if self.metric == "Rand Index":
                 distance = self._rand_distance(full_split, partition)
-            elif self.metric == "Jaccard":
+            elif self.metric == "Jaccard Index":
                 pass
 
             split_result = {
@@ -287,9 +299,5 @@ class MsaProcessor():
 
     def process_msa(self):
         '''Processes the MSA and assigns it to object variable'''
-        try:
-            self.split_by_column = self._calculate(self.threading)
-            return True
-        except:
-            print("There was an error processing the MSA.")
-            return False
+        self.split_by_column = self._calculate(self.threading)
+        return True
