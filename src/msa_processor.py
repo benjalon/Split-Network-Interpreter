@@ -14,7 +14,8 @@ class MsaProcessor():
     '''Processes a nexus file.'''
 
     def __init__(
-            self, file_path, threading=True, top_splits=None, upper_limit=80):
+            self, file_path, threading=True, top_splits=None, upper_limit=80,
+            metric="Rand"):
         nexus_file = NexusReader(file_path)
 
         # Set class variables from file.
@@ -24,6 +25,7 @@ class MsaProcessor():
         self.species_names = nexus_file.characters.taxa
         self.symbols = nexus_file.characters.symbols
         self.upper_limit = upper_limit
+        self.metric = metric
 
         # If set, only process top x splits sorted by weight.
         total_splits = self._process_splits(
@@ -44,7 +46,8 @@ class MsaProcessor():
             self._fix_msa()
 
         # Calculate the splits in each partition.
-        self.split_by_column = self._calculate(threading)
+        self.split_by_column = None
+        self.threading = threading
 
     def _fix_msa(self):
         msa_copy = self._msa
@@ -52,9 +55,9 @@ class MsaProcessor():
         # For each column make an array and add it to the main return msa
         for column in range(self.num_columns):
             for i, species in enumerate(self._msa):
-                if i is 0:
+                if i == 0:
                     top_base = self._msa[species][column]
-                if self._msa[species][column] is '.':
+                if self._msa[species][column] == '.':
                     msa_copy[species][column] = top_base
                 else:
                     msa_copy[species][column] = self._msa[species][column]
@@ -183,9 +186,15 @@ class MsaProcessor():
         for split in self.splits:
             # Combine split with other half.
             full_split = [split['split'], split['inverse']]
+
+            if self.metric == "Rand":
+                distance = self._rand_distance(full_split, partition)
+            elif self.metric == "Jaccard":
+                pass
+
             split_result = {
                 'split_number': split['split_number'],
-                'split_score': self._rand_distance(full_split, partition),
+                'split_score': distance,
                 'split_weight': split['split_weight']
             }
             score_list.append(split_result)
@@ -254,8 +263,7 @@ class MsaProcessor():
             result = self._match_split(partition)
             if result is not False:
                 return result
-            else:
-                return 0
+            return 0
         else:
             return 0
 
@@ -277,10 +285,11 @@ class MsaProcessor():
         '''Returns an array containing the split found at each location.'''
         return self.split_by_column
 
-
-# PATH = '/Users/benlonghurst/Documents/GitHub/'
-# PATH = PATH + 'Split-Network-Interpreter/Nexus_Examples/'
-# PRO = MsaProcessor(PATH+'primates.nex')
-# arr = PRO.msa()
-# spl_col = PRO.split_columns()
-# print(spl_col)
+    def process_msa(self):
+        '''Processes the MSA and assigns it to object variable'''
+        try:
+            self.split_by_column = self._calculate(self.threading)
+            return True
+        except:
+            print("There was an error processing the MSA.")
+            return False
