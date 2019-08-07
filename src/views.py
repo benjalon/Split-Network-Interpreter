@@ -79,4 +79,26 @@ class MSAWindow(QMainWindow):
             QListWidgetItem(species, self.species_list_widget)
 
 
+class SettingsWindow(QMainWindow):
+    """SettingsWindow contains functions for the settings.ui with PyQt5"""
 
+    def __init__(self, controller, parent=None):
+        super(SettingsWindow, self).__init__(parent)
+        file_name = '/UI_Templates/settings.ui'
+        current_dir = dirname(__file__)
+        file_path = current_dir[:-3] + file_name
+        uic.loadUi(file_path, self)
+        self.controller = controller
+
+
+class LoadingWindow(QMainWindow):
+    """LoadingWindow contains functions for the loadingScreen.ui with PyQt5"""
+
+    def __init__(self, controller, parent=None):
+        super(LoadingWindow, self).__init__(parent)
+        #file_name = '/UI_Templates/loadingScreen.ui'
+        file_name = '/UI_Templates/startScreen.ui'
+        current_dir = dirname(__file__)
+        file_path = current_dir[:-3] + file_name
+        uic.loadUi(file_path, self)
+        self.controller = controller

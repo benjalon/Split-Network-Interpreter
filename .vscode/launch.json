@@ -5,6 +5,12 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name":"SNI: Main File",
+            "type":"python",
+            "request":"launch",
+            "program":"${workspaceFolder}/src/split_network_interpreter.py",
+            "console":"integratedTerminal"},
+        {
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
