@@ -42,6 +42,7 @@ class MSAWindow(QMainWindow):
     def update_table(self, processed_msa):
         # Create table
         self.tableWidget = self.msa_table
+        #self.tableWidget.horizontalHeader().setStretchLastSection(True)
         msa = processed_msa.msa()
         cols = processed_msa.split_by_column
 
@@ -51,13 +52,7 @@ class MSAWindow(QMainWindow):
         cols_set = list(cols_set)
         num_splits = len(cols_set)
 
-        colourblind_colours = ['E6194B', '3CB44B', 'FFE119', '4363D8', 'F58231', '911EB4', '46F0F0', 'F032E6', 'BCF60C', 'FABEBE', '008080', 'E6BEFF', '9A6324', 'FFFAC8', '800000', 'AAFFC3', '808000', 'FFD8B1', '000075', '808080']
-
-        if num_splits <= len(colourblind_colours):
-            colours = colourblind_colours
-        else:
-            colours = colorgen.getColours(num_splits)
-
+        colours = colorgen.getColours(num_splits)
         for i, colour in enumerate(colours):
             colour_list[i+1] = tuple(int(colour[i:i+2], 16) for i in (0, 2, 4))
 
