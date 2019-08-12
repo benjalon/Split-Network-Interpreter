@@ -1,3 +1,4 @@
+# pylint: disable=no-member
 """Controller class which coordinates the interaction between the view and
 model."""
 import sys

@@ -1,8 +1,12 @@
+# pylint: disable=no-member
+# pylint: disable=no-name-in-module
 """Views used in the windowing of the application with PyQt5."""
 from os.path import dirname
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidgetItem, QListWidgetItem, QTreeWidgetItem
+from PyQt5.QtWidgets import QMainWindow, QTableWidgetItem
+from PyQt5.QtWidgets import QListWidgetItem, QTreeWidgetItem
 from PyQt5 import uic
-from PyQt5.QtGui import QIcon, QColor, QIntValidator, QRegExpValidator
+from PyQt5.QtGui import QIcon, QColor, QRegExpValidator, QPixmap
+from PyQt5 import QtGui
 from PyQt5.QtCore import QRegExp
 import colorgen
 
@@ -33,18 +37,20 @@ class MSAWindow(QMainWindow):
         self.msa = msa
         self.change_filename(self.controller.process_file_name())
         self.update_table(msa)
+        self.update_splits_list()
         self.update_species_list()
         self.split_select_button.clicked.connect(
             self.update_total_split_selection)
         self.splits_list_widget.currentItemChanged.connect(
             self.update_single_split_selection)
+        self.update_labels()
 
     def change_filename(self, filename):
         """Changes the file name at the top of the MSA screen."""
         self.filename_label.setText(filename)
-        self.update_splits_list()
 
     def update_table(self, processed_msa):
+        '''Adds the data to the table'''
         # Create table
         self.table_widget = self.msa_table
         msa = processed_msa.msa()
@@ -56,7 +62,11 @@ class MSAWindow(QMainWindow):
         self.cols_set = list(self.cols_set)
         num_splits = len(self.cols_set)
 
-        colourblind_colours = ['E6194B', '3CB44B', 'FFE119', '4363D8', 'F58231', '911EB4', '46F0F0', 'F032E6', 'BCF60C', 'FABEBE', '008080', 'E6BEFF', '9A6324', 'FFFAC8', '800000', 'AAFFC3', '808000', 'FFD8B1', '000075', '808080']
+        colourblind_colours = ['E6194B', '3CB44B', 'FFE119', '4363D8',
+                               'F58231', '911EB4', '46F0F0', 'F032E6',
+                               'BCF60C', 'FABEBE', '008080', 'E6BEFF',
+                               '9A6324', 'FFFAC8', '800000', 'AAFFC3',
+                               '808000', 'FFD8B1', '000075', '808080']
 
         if num_splits <= len(colourblind_colours):
             colours = colourblind_colours
@@ -64,7 +74,8 @@ class MSAWindow(QMainWindow):
             colours = colorgen.getColours(num_splits)
 
         for i, colour in enumerate(colours):
-            self.colour_list[i+1] = tuple(int(colour[i:i+2], 16) for i in (0, 2, 4))
+            self.colour_list[i+1] = tuple(int(colour[i:i+2], 16)
+                                          for i in (0, 2, 4))
 
         self.table_widget.setRowCount(len(msa[0]))
         self.table_widget.setVerticalHeaderLabels(processed_msa.species_names)
@@ -81,7 +92,7 @@ class MSAWindow(QMainWindow):
                 if self.cols[j] > 0 and self.original_bg is None:
                     column = self.table_widget.item(i, j)
                     self.original_bg = column.background()
-        
+
         self.colour_splits()
 
     def update_splits_list(self):
@@ -99,17 +110,26 @@ class MSAWindow(QMainWindow):
                 ["Split: " + str(split['split'])])
             split_parent.addChild(half_split_child)
 
+            pixmap = QPixmap(16, 16)
+            ind = self.cols_set.index(split['split_number'])
+            colour = self.colour_list[ind+1]
+            colour = QColor(colour[0], colour[1], colour[2])
+            pixmap.fill(colour)
+            split_parent.setIcon(0, QIcon(pixmap))
+
             split_widget = self.splits_list_widget
-            # tw.resize(500, 200)
-            split_widget.setColumnCount(2)
-            split_widget.setHeaderLabels(["Split", "Colour"])
+            split_widget.setColumnCount(1)
+            split_widget.setHeaderLabels(["Split"])
             split_widget.addTopLevelItem(split_parent)
-            #self.super_list.append(split_parent)
+    
+    def update_labels(self):
+        self.species_label.setText(f"Species ({self.msa.num_species})")
+        self.splits_label.setText(f"Splits (Top {self.msa.num_splits})")
 
     def update_species_list(self):
         '''Updates the list of species in the msa view.'''
-        for species in self.msa.species_names:
-            QListWidgetItem(species, self.species_list_widget)
+        for i, species in enumerate(self.msa.species_names):
+            QListWidgetItem(f"{i+1}. {species}", self.species_list_widget)
 
     def update_single_split_selection(self, split_num=None, add=True):
         '''Updates the list of selected splits.'''
