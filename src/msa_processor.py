@@ -34,6 +34,7 @@ class MsaProcessor():
             self.nexus_file.splits.block)
 
     def _get_default_splits(self, block):
+        '''Gets the number of splits available in the nexus file.'''
         dimensions = block[1]
         nsplits = r".*nsplits=(\d*);"
 
