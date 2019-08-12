@@ -54,7 +54,7 @@ class MsaProcessor():
             total_splits,
             key=operator.itemgetter('split_weight'), reverse=True)
 
-        if self.top_splits is None or self.top_splits <= self.num_splits:
+        if self.top_splits is None or self.top_splits >= self.num_splits:
             self.splits = total_splits
         else:
             self.splits = total_splits[0:self.top_splits]
