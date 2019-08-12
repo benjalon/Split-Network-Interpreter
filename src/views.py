@@ -1,6 +1,6 @@
 """Views used in the windowing of the application with PyQt5."""
 from os.path import dirname
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidgetItem, QListWidgetItem
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidgetItem, QListWidgetItem, QTreeWidgetItem
 from PyQt5 import uic
 from PyQt5.QtGui import QIcon, QColor, QIntValidator, QRegExpValidator
 from PyQt5.QtCore import QRegExp
@@ -36,9 +36,9 @@ class MSAWindow(QMainWindow):
         self.update_species_list()
         self.split_select_button.clicked.connect(
             self.update_total_split_selection)
-        self.splits_list_widget.itemClicked.connect(
-                self.update_total_split_selection)
-        
+        self.splits_list_widget.currentItemChanged.connect(
+            self.update_single_split_selection)
+
     def change_filename(self, filename):
         """Changes the file name at the top of the MSA screen."""
         self.filename_label.setText(filename)
@@ -87,20 +87,37 @@ class MSAWindow(QMainWindow):
     def update_splits_list(self):
         '''Updates the list of splits in the msa view.'''
         for split in self.msa.splits:
-            item = f"Split:{split['split_number']} - Weight {split['split_weight']}"
-            w_item = QListWidgetItem(item, self.splits_list_widget)
+
+            split_parent = QTreeWidgetItem(
+                [str(split['split_number'])])
+
+            weight_child = QTreeWidgetItem(
+                ["Weight: " + str(split['split_weight'])])
+            split_parent.addChild(weight_child)
+
+            half_split_child = QTreeWidgetItem(
+                ["Split: " + str(split['split'])])
+            split_parent.addChild(half_split_child)
+
+            split_widget = self.splits_list_widget
+            # tw.resize(500, 200)
+            split_widget.setColumnCount(2)
+            split_widget.setHeaderLabels(["Split", "Colour"])
+            split_widget.addTopLevelItem(split_parent)
+            #self.super_list.append(split_parent)
 
     def update_species_list(self):
         '''Updates the list of species in the msa view.'''
         for species in self.msa.species_names:
             QListWidgetItem(species, self.species_list_widget)
 
-    def update_single_split_selection(self, split_num, add):
+    def update_single_split_selection(self, split_num=None, add=True):
         '''Updates the list of selected splits.'''
-        if add:
-            self.split_selection.add(split_num)
-        else:
-            self.split_selection.remove(split_num)
+        current = self.splits_list_widget.currentItem()
+        split_num = int(current.text(0))
+
+        self.split_selection.clear()
+        self.split_selection.add(split_num)
 
         self.colour_splits()
 
