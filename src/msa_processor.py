@@ -30,7 +30,17 @@ class MsaProcessor():
         self.split_by_column = None
         self.threading = None
         self.splits = None
-        self.num_splits = None
+        self.num_splits = self._get_default_splits(
+            self.nexus_file.splits.block)
+
+    def _get_default_splits(self, block):
+        dimensions = block[1]
+        nsplits = r".*nsplits=(\d*);"
+
+        splits_search = re.search(nsplits, dimensions, re.IGNORECASE)
+
+        if splits_search:
+            return int(splits_search.group(1))
 
     def _get_top_splits(self):
         # If set, only process top x splits sorted by weight.
@@ -40,9 +50,8 @@ class MsaProcessor():
             total_splits,
             key=operator.itemgetter('split_weight'), reverse=True)
 
-        if self.top_splits is None:
+        if self.top_splits is None or self.top_splits <= self.num_splits:
             self.splits = total_splits
-            self.num_splits = len(total_splits)
         else:
             self.splits = total_splits[0:self.top_splits]
             self.num_splits = self.top_splits
