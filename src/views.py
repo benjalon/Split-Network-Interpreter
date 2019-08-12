@@ -29,11 +29,16 @@ class MSAWindow(QMainWindow):
         current_dir = dirname(__file__)
         file_path = current_dir[:-3] + file_name
         uic.loadUi(file_path, self)
+        self.split_selection = set()
         self.msa = msa
         self.change_filename(self.controller.process_file_name())
         self.update_table(msa)
         self.update_species_list()
-
+        self.split_select_button.clicked.connect(
+            self.update_total_split_selection)
+        self.splits_list_widget.itemClicked.connect(
+                self.update_total_split_selection)
+        
     def change_filename(self, filename):
         """Changes the file name at the top of the MSA screen."""
         self.filename_label.setText(filename)
@@ -41,15 +46,15 @@ class MSAWindow(QMainWindow):
 
     def update_table(self, processed_msa):
         # Create table
-        self.tableWidget = self.msa_table
+        self.table_widget = self.msa_table
         msa = processed_msa.msa()
-        cols = processed_msa.split_by_column
+        self.cols = processed_msa.split_by_column
 
-        colour_list = {}
-        cols_set = set(cols)
-        cols_set.discard(0)
-        cols_set = list(cols_set)
-        num_splits = len(cols_set)
+        self.colour_list = {}
+        self.cols_set = set(self.cols)
+        self.cols_set.discard(0)
+        self.cols_set = list(self.cols_set)
+        num_splits = len(self.cols_set)
 
         colourblind_colours = ['E6194B', '3CB44B', 'FFE119', '4363D8', 'F58231', '911EB4', '46F0F0', 'F032E6', 'BCF60C', 'FABEBE', '008080', 'E6BEFF', '9A6324', 'FFFAC8', '800000', 'AAFFC3', '808000', 'FFD8B1', '000075', '808080']
 
@@ -59,32 +64,71 @@ class MSAWindow(QMainWindow):
             colours = colorgen.getColours(num_splits)
 
         for i, colour in enumerate(colours):
-            colour_list[i+1] = tuple(int(colour[i:i+2], 16) for i in (0, 2, 4))
+            self.colour_list[i+1] = tuple(int(colour[i:i+2], 16) for i in (0, 2, 4))
 
-        self.tableWidget.setRowCount(len(msa[0]))
-        self.tableWidget.setVerticalHeaderLabels(processed_msa.species_names)
-        self.tableWidget.setColumnCount(len(msa))
+        self.table_widget.setRowCount(len(msa[0]))
+        self.table_widget.setVerticalHeaderLabels(processed_msa.species_names)
+        self.table_widget.setColumnCount(len(msa))
+
+        self.split_selection = set(self.cols)
+
+        self.original_bg = None
 
         for i in range(0, len(msa[0])):
             for j in range(0, len(msa)):
-                self.tableWidget.setColumnWidth(j, 1)
-                self.tableWidget.setItem(i, j, QTableWidgetItem(msa[j][i]))
-                if (cols[j] > 0):
-                    ind = cols_set.index(cols[j]) + 1
-                    colour = colour_list[ind]
-                    self.tableWidget.item(i, j).setBackground(
-                        QColor(colour[0], colour[1], colour[2]))
+                self.table_widget.setColumnWidth(j, 1)
+                self.table_widget.setItem(i, j, QTableWidgetItem(msa[j][i]))
+                if self.cols[j] > 0 and self.original_bg is None:
+                    column = self.table_widget.item(i, j)
+                    self.original_bg = column.background()
+        
+        self.colour_splits()
 
     def update_splits_list(self):
         '''Updates the list of splits in the msa view.'''
         for split in self.msa.splits:
             item = f"Split:{split['split_number']} - Weight {split['split_weight']}"
-            QListWidgetItem(item, self.splits_list_widget)
+            w_item = QListWidgetItem(item, self.splits_list_widget)
 
     def update_species_list(self):
         '''Updates the list of species in the msa view.'''
         for species in self.msa.species_names:
             QListWidgetItem(species, self.species_list_widget)
+
+    def update_single_split_selection(self, split_num, add):
+        '''Updates the list of selected splits.'''
+        if add:
+            self.split_selection.add(split_num)
+        else:
+            self.split_selection.remove(split_num)
+
+        self.colour_splits()
+
+    def update_total_split_selection(self):
+        '''Updates the list of selected splits.'''
+        if len(self.split_selection) == 0:
+            self.split_selection.clear()
+            self.split_selection = set(self.cols)
+            self.split_select_button.setText('Deselect All')
+        else:
+            self.split_selection.clear()
+            self.split_select_button.setText('Select All')
+
+        self.colour_splits()
+
+    def colour_splits(self):
+        '''Colours the splits based on the selection.'''
+        for i in range(0, self.msa.num_species):
+            for j in range(0, self.msa.num_columns):
+
+                if self.cols[j] > 0 and self.cols[j] in self.split_selection:
+                    ind = self.cols_set.index(self.cols[j]) + 1
+                    colour = self.colour_list[ind]
+                    self.table_widget.item(i, j).setBackground(
+                        QColor(colour[0], colour[1], colour[2]))
+                else:
+                    self.table_widget.item(i, j).setBackground(
+                        self.original_bg)
 
 
 class SettingsWindow(QMainWindow):

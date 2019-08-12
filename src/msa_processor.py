@@ -33,7 +33,8 @@ class MsaProcessor():
         self.num_splits = self._get_default_splits(
             self.nexus_file.splits.block)
 
-    def _get_default_splits(self, block):
+    @staticmethod
+    def _get_default_splits(block):
         '''Gets the number of splits available in the nexus file.'''
         dimensions = block[1]
         nsplits = r".*nsplits=(\d*);"
@@ -42,6 +43,8 @@ class MsaProcessor():
 
         if splits_search:
             return int(splits_search.group(1))
+        else:
+            return None
 
     def _get_top_splits(self):
         # If set, only process top x splits sorted by weight.
