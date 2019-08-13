@@ -121,8 +121,9 @@ class MSAWindow(QMainWindow):
             split_widget.setColumnCount(1)
             split_widget.setHeaderLabels(["Split"])
             split_widget.addTopLevelItem(split_parent)
-    
+
     def update_labels(self):
+        '''Changes the labels to include specifics about the network.'''
         self.species_label.setText(f"Species ({self.msa.num_species})")
         self.splits_label.setText(f"Splits (Top {self.msa.num_splits})")
 
