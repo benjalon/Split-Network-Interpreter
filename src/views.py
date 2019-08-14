@@ -159,14 +159,18 @@ class MSAWindow(QMainWindow):
         for i in range(0, self.msa.num_species):
             for j in range(0, self.msa.num_columns):
 
-                if self.cols[j] > 0 and self.cols[j] in self.split_selection:
-                    ind = self.cols_set.index(self.cols[j]) + 1
-                    colour = self.colour_list[ind]
+                if self.cols[j] == 101010:
                     self.table_widget.item(i, j).setBackground(
-                        QColor(colour[0], colour[1], colour[2]))
+                        QColor(128, 128, 128))
                 else:
-                    self.table_widget.item(i, j).setBackground(
-                        self.original_bg)
+                    if self.cols[j] > 0 and self.cols[j] in self.split_selection:
+                        ind = self.cols_set.index(self.cols[j]) + 1
+                        colour = self.colour_list[ind]
+                        self.table_widget.item(i, j).setBackground(
+                            QColor(colour[0], colour[1], colour[2]))
+                    else:
+                        self.table_widget.item(i, j).setBackground(
+                            self.original_bg)
 
 
 class SettingsWindow(QMainWindow):

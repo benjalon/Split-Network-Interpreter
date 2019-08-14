@@ -179,6 +179,32 @@ class MsaProcessor():
         rand = (rand_r+rand_s)/(rand_r+rand_s+rand_u+rand_v)
         return rand
 
+    def _jaccard_distance(self, partition_p, partition_q):
+        '''Returns the distance by Jaccard index between bases p and q'''
+        jacc_s = jacc_r = jacc_u = jacc_v = 0
+
+        # Go through every possible pairs between partitions.
+        for i in range(1, self.num_species+1):
+            for j in range(1, self.num_species+1):
+                if i != j:
+                    # Generate results for how values appear across both
+                    # partitions.
+                    set_info = self._part_sep(partition_p, partition_q, i, j)
+
+                    if(set_info['pTogether'] and set_info['qTogether']):
+                        jacc_s += 1
+                    if (not set_info['pTogether'] and not
+                            set_info['qTogether']):
+                        jacc_r += 1
+                    if (not set_info['pTogether'] and set_info['qTogether']):
+                        jacc_u += 1
+                    if (set_info['pTogether'] and not set_info['qTogether']):
+                        jacc_v += 1
+
+        # Use jacc Index to calculate distance between partitions.
+        jacc = (jacc_r+jacc_s)/(jacc_r+jacc_s+jacc_u+jacc_v)
+        return jacc
+
     @staticmethod
     def _part_sep(partition_p, partition_q, value_x, value_y):
         '''
@@ -215,8 +241,8 @@ class MsaProcessor():
             if self.metric == "Rand Index":
                 distance = self._rand_distance(full_split, partition)
             elif self.metric == "Jaccard Index":
-                pass
-
+                distance = self._jaccard_distance(full_split, partition)
+                
             split_result = {
                 'split_number': split['split_number'],
                 'split_score': distance,
@@ -275,6 +301,9 @@ class MsaProcessor():
         column = []
         for species in self._msa:
             column.append(self._msa[species][col_num])
+
+        if "-" in set(column):
+            return 101010
 
         # As we use a Set, if there are any duplicates, the length will
         # greater than 1 meaning the column is a partition.
