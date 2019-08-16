@@ -111,11 +111,14 @@ class MSAWindow(QMainWindow):
             split_parent.addChild(half_split_child)
 
             pixmap = QPixmap(16, 16)
-            ind = self.cols_set.index(split['split_number'])
-            colour = self.colour_list[ind+1]
-            colour = QColor(colour[0], colour[1], colour[2])
-            pixmap.fill(colour)
-            split_parent.setIcon(0, QIcon(pixmap))
+            try:
+                ind = self.cols_set.index(split['split_number'])
+                colour = self.colour_list[ind+1]
+                colour = QColor(colour[0], colour[1], colour[2])
+                pixmap.fill(colour)
+                split_parent.setIcon(0, QIcon(pixmap))
+            except:
+                pass
 
             split_widget = self.splits_list_widget
             split_widget.setColumnCount(1)
